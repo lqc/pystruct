@@ -6,8 +6,8 @@ python classes which syntanticly resamble C structures.
 
 For example::
 
-class Simple(CStruct):
-   field = IntField()
+    class Simple(CStruct):
+        field = IntField()
 
 Then packing and unpacking is very simple:
 
