@@ -5,20 +5,21 @@ else:
     import unittest
 import coverage
 
+_cov = coverage.coverage(config_file='coverage.cfg')
 
 class CoverageResult(unittest._TextTestResult):
 
-    def startTestRun(self):
-        self._coverage = coverage.coverage(config_file='coverage.cfg')
-        self._coverage.start()
-
     def stopTestRun(self):
-        self._coverage.stop()
-        self._coverage.report()
+        _cov.stop()
+        print "Coverage report:"
+        _cov.report()
+        _cov.html_report()
+
 
 class CoverageRunner(unittest.TextTestRunner):
     resultclass = CoverageResult
 
 
 if __name__ == "__main__":
+    _cov.start()
     unittest.main(module='pystruct.tests', testRunner=CoverageRunner)
