@@ -1,46 +1,41 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-__author__ = "Łukasz Rekucki"
-__date__ = "$2009-07-19 09:50:34$"
-
-from pystruct.common import CField, CStruct
+from __future__ import unicode_literals
+from pystruct.common import CField, CStruct, UnpackException
 from pystruct.fields.numeric import UIntField
 from pystruct.fields.complex import StructField
+from pystruct.constraints import LengthConstraint, MaxLengthConstraint
 
-from pystruct.constraints import *
-
-from lq_utils import raw
+from functools import partial
 
 def string_padder(opts):
     pad = opts['padding']
-    opts['value'] += pad*raw('\x00')
+    opts['value'] += pad * b'\x00'
 
-class StringField(CField):    
+class StringField(CField):
     KEYWORDS = dict(CField.KEYWORDS,
-        length= lambda lv: LengthConstraint(\
-            length=lv, padding_func=string_padder) )
+        length=partial(LengthConstraint, padding_func=string_padder))
 
     def __init__(self, idx, default='', length=0, **kwargs):
-        CField.__init__(self, idx, default, **dict(kwargs, length=length) )
-        
+        CField.__init__(self, idx, default, **dict(kwargs, length=length))
+
     def _format_string(self, opts):
         if opts['length'] == -1:
             opts['length'] = len(opts['data']) - opts['offset']
-            
-        return '<'+str(opts['length'])+'s'
+
+        return '<' + str(opts['length']) + 's'
 
     def _retrieve_value(self, opts):
-         (v, offset) = CField._retrieve_value(self, opts)
-         return (v[0], offset)
+        (v, offset) = CField._retrieve_value(self, opts)
+        return (v[0], offset)
 
-  
+
 class NullStringField(CField):
-    KEYWORDS = dict(CField.KEYWORDS,
-        max_length= lambda lv: MaxLengthConstraint(length=lv) )
-            
+    KEYWORDS = dict(CField.KEYWORDS, max_length=MaxLengthConstraint)
+
     def _format_string(self, opts):
-        return '<'+str(opts['length'])+'s'
+        return '<' + str(opts['length']) + 's'
 
     def _before_unpack(self, opts):
         CField._before_unpack(self, opts)
@@ -53,7 +48,7 @@ class NullStringField(CField):
 
     def before_pack(self, obj, offset, **opts):
         value = getattr(obj, self.name)
-        return CField.before_pack(self,obj, offset, length=len(value), **opts)
+        return CField.before_pack(self, obj, offset, length=len(value), **opts)
 
     def pack(self, obj, offset, **opts):
         value = getattr(obj, self.name)
@@ -64,18 +59,17 @@ class NullStringField(CField):
         return (v[0], offset)
 
     def set_value(self, obj, value):
-        # print( repr(value), repr(value[-1]), repr(raw('\0')) )
-        if not isinstance(value, bytes) or value[-1] != raw('\0')[0]:
+        if not isinstance(value, bytes) or value[-1] != b'\0':
             raise ValueError("NullStringField value must a string with last character == '\\0'.")
-        
+
         return CField.set_value(self, obj, value)
 
-class CStruct_VarString(CStruct):
+class CStructVarString(CStruct):
     length = UIntField(0)
     text = StringField(1, length='length')
 
 class VarcharField(StructField):
-    def __init__(self, idx, default='', **opts):        
+    def __init__(self, idx, default='', **opts):
         if isinstance(default, str):
-            default = CStruct_VarString(text=default)            
-        StructField.__init__(self, idx, CStruct_VarString, default, **opts)
+            default = CStructVarString(text=default)
+        StructField.__init__(self, idx, CStructVarString, default, **opts)

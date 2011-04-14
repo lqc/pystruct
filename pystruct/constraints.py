@@ -28,7 +28,7 @@ class IConstraint(object):
 
     def on_value_set(self, opts):
         pass
-    
+
 class PrefixConstraint(IConstraint):
     def __init__(self, param, priority=PRIO_PREFIX):
         IConstraint.__init__(self, priority)
@@ -62,7 +62,7 @@ class OffsetConstraint(IConstraint):
             self.before_upack = self.before_upack_number
         else:
             raise ValueError("Offset constraint must contain a number or a valid field name.")
-        
+
         self.__offset = param
 
     def before_upack_number(self, options):
@@ -77,17 +77,17 @@ class OffsetConstraint(IConstraint):
                     to a numeric field.")
         if getattr(options['obj'], self.__offset) != options['offset']:
             return False
-        return True      
+        return True
 
-    def before_pack(self, options):       
-        if isinstance(self.__offset, str):           
+    def before_pack(self, options):
+        if isinstance(self.__offset, str):
             setattr(options['obj'], self.__offset, options['offset'])
-            
+
     def pack(self, options):
         if isinstance(self.__offset, int) and (options['offset'] != self.__offset):
             raise PackingException("Explicit offset of field %s was set, but position doesn't match" % \
-                options['field'].name )
-            
+                options['field'].name)
+
 class ValueTypeConstraint(IConstraint):
 
     def __init__(self, typeklass, priority=PRIO_TYPE):
@@ -100,19 +100,19 @@ class ValueTypeConstraint(IConstraint):
     def on_value_set(self, opts):
         if not isinstance(opts['value'], self._klass):
             raise ValueError("Field %s accepts only instances of %s as value."\
-                % (opts['field'].name, self._klass.__name__) )
+                % (opts['field'].name, self._klass.__name__))
 
 class NumericBounds(IConstraint):
     BOUND_FOR_CTYPE = {
-        'int':      (-(2**31)+1 , 2**31),
-        'uint':     (0          , 2**32-1),
-        'short':    (-(2**15)+1 , 2**15),
-        'ushort':   (0          , 2**16-1),
+        'int':      (-(2 ** 31) + 1 , 2 ** 31),
+        'uint':     (0          , 2 ** 32 - 1),
+        'short':    (-(2 ** 15) + 1 , 2 ** 15),
+        'ushort':   (0          , 2 ** 16 - 1),
         'byte':     (-127, 128),
         'ubyte':    (0, 255),
     }
 
-    def __init__(self, lower_bound = None, upper_bound = None, ctype=None, \
+    def __init__(self, lower_bound=None, upper_bound=None, ctype=None, \
       priority=PRIO_NBOUNDS):
         IConstraint.__init__(self, priority)
 
@@ -127,7 +127,7 @@ class NumericBounds(IConstraint):
     def on_value_set(self, opts):
         if not (self._lbound <= opts['value'] <= self._ubound):
             raise ValueError("Field %s - value %s out of bounds."\
-                % (opts['field'].name, opts['value']) )
+                % (opts['field'].name, opts['value']))
 
 class LengthConstraint(IConstraint):
     def __init__(self, length, padding_func, priority=PRIO_LENGTH, opt_name='length'):
@@ -135,7 +135,7 @@ class LengthConstraint(IConstraint):
 
         if isinstance(length, property):
             self.before_unpack = self.before_unpack_prop
-        elif isinstance(length, str):
+        elif isinstance(length, basestring):
             self.before_unpack = self.before_unpack_field
         elif isinstance(length, int):
             self.before_unpack = self.before_unpack_number
@@ -149,16 +149,16 @@ class LengthConstraint(IConstraint):
     def on_value_set(self, opts):
         L = len(opts['value'])
         if isinstance(self.__length, property):
-            return self.__length.__set__(opts, L)            
-        if isinstance(self.__length, str):
+            return self.__length.__set__(opts, L)
+        if isinstance(self.__length, basestring):
             return setattr(opts['obj'], self.__length, L)
         if self.__length < 0:
             return # do nothing
 
         if L > self.__length:
-            raise ValueError("Field %s has limited length of %d." % (opts['field'].name, self.__length) )
+            raise ValueError("Field %s has limited length of %d." % (opts['field'].name, self.__length))
 
-        if self.__padding_func: 
+        if self.__padding_func:
             opts['padding'] = (self.__length - L)
             self.__padding_func(opts)
 

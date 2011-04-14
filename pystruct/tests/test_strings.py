@@ -1,29 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+from __future__ import unicode_literals
+
 import unittest
 import struct
 
 from pystruct.common import CStruct
-from pystruct.fields.text import *
+from pystruct.fields.text import StringField, NullStringField
 from pystruct.fields.numeric import IntField
-from pystruct.constraints import *
-
-from lq_utils import raw
-
-__author__="lreqc"
-__date__ ="$2009-07-21 00:43:44$"
 
 class StringFieldTest(unittest.TestCase):
 
     def setUp(self):
-        self.svalue = raw("Hello World!")
+        self.svalue = b"Hello World!"
         self.slen = len(self.svalue)
-        self.sdata = struct.pack("<"+str(self.slen)+"s", self.svalue)
-        self.sdata_ext = struct.pack("<I", self.slen) + self.sdata
+        self.sdata = struct.pack(bytes("<{0}s".format(self.slen)), self.svalue)
+        self.sdata_ext = struct.pack(b"<I", self.slen) + self.sdata
 
     def testNegativeLength(self):
         class TestStruct(CStruct):
-            text = StringField(0, length=-1)
+            text = StringField(0, length= -1)
 
         s, offset = TestStruct.unpack(self.sdata)
         self.assertEqual(s.text, self.svalue)
@@ -35,7 +31,7 @@ class StringFieldTest(unittest.TestCase):
 
         s = TestStruct(text=self.svalue)
         self.assertTrue(self.slen < 32)
-        self.assertEqual(s.text, self.svalue + (32-self.slen)*raw('\x00'))
+        self.assertEqual(s.text, self.svalue + (32 - self.slen) * b'\x00')
         self.assertEqual(s.pack(), s.text)
 
     def test0Pack(self):
@@ -45,7 +41,7 @@ class StringFieldTest(unittest.TestCase):
         s = TestStruct(text=self.svalue)
         self.assertEqual(s.text, self.svalue)
         self.assertEqual(s.pack(), self.sdata)
-        
+
     def test0Unpack(self):
         class TestStruct(CStruct):
             text = StringField(0, length=self.slen)
@@ -70,12 +66,8 @@ class StringFieldTest(unittest.TestCase):
 
     def test0PackNullString(self):
         class TestStruct(CStruct):
-            text        = NullStringField(0)
-            checksum    = IntField(1, default=0x7afebabe)
+            text = NullStringField(0)
+            checksum = IntField(1, default=0x7afebabe)
 
-        s = TestStruct(text=raw('Ala ma kota\0'))
-        self.assertEqual(s.pack(), raw('Ala ma kota\0') + struct.pack("<i", 0x7afebabe))
-
-
-if __name__ == "__main__":
-    import lqsoft.cstruct.test.test_strings
+        s = TestStruct(text=b'Ala ma kota\0')
+        self.assertEqual(s.pack(), b'Ala ma kota\0' + struct.pack(b"<i", 0x7afebabe))

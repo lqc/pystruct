@@ -4,18 +4,15 @@
 import unittest
 import struct
 
-from pystruct.common import CStruct
+from pystruct.common import CStruct, UnpackException
 from pystruct.fields.numeric import *
-from pystruct.constraints import *
-
-__author__ = "lreqc"
-__date__ = "$2009-07-21 00:43:44$"
+from pystruct.constraints import PrefixConstraint
 
 class NumericFieldTest(unittest.TestCase):
 
     def setUp(self):
         self.ivalue = 42
-        self.idata = raw(struct.pack('<i', self.ivalue))
+        self.idata = struct.pack('<i', self.ivalue)
 
     def test0Pack(self):
         class TestStruct(CStruct):
@@ -23,7 +20,7 @@ class NumericFieldTest(unittest.TestCase):
 
         s = TestStruct(intField=self.ivalue)
         self.assert_(s.intField == self.ivalue)
-        self.assert_( s.pack() == self.idata )
+        self.assert_(s.pack() == self.idata)
 
     def test0Unpack(self):
         class TestStruct(CStruct):
@@ -41,10 +38,10 @@ class NumericFieldTest(unittest.TestCase):
 
     def testPrefixMismatch(self):
         class TestStruct(CStruct):
-            intField = NumericField(0, ctype='int', prefix=raw('abc'))
+            intField = NumericField(0, ctype='int', prefix=b'abc')
 
         try:
-            v, offset = TestStruct.unpack(self.idata)            
+            v, offset = TestStruct.unpack(self.idata)
             self.fail('Invalid prefix accepted by field during unpack.')
         except UnpackException as e:
             if not isinstance(e.constraint, PrefixConstraint):
@@ -53,10 +50,10 @@ class NumericFieldTest(unittest.TestCase):
 
     def testPrefixTooLong(self):
         class TestStruct(CStruct):
-            intField = NumericField(0, ctype='int', prefix=(self.idata+raw('\x00')) )
+            intField = NumericField(0, ctype='int', prefix=(self.idata + b'\x00'))
 
         try:
-            v, offset = TestStruct.unpack(self.idata)            
+            v, offset = TestStruct.unpack(self.idata)
             self.fail('Too long prefix accepted by field during unpack.')
         except UnpackException as e:
             if not isinstance(e.constraint, PrefixConstraint):
@@ -65,7 +62,7 @@ class NumericFieldTest(unittest.TestCase):
 
     def testPrefixEmpty(self):
         class TestStruct(CStruct):
-            intField = NumericField(0, ctype='int', prefix=raw('') )
+            intField = NumericField(0, ctype='int', prefix=b'')
 
         v, offset = TestStruct.unpack(self.idata)
         self.assert_(v.intField == self.ivalue)
@@ -76,8 +73,8 @@ class NumericFieldTest(unittest.TestCase):
             shortField = ShortField(1)
             intField = IntField(2)
 
-        s = TestStruct(byteField=42, shortField=-30000, intField=4000000)
-        s2, offset = TestStruct.unpack( s.pack() )
+        s = TestStruct(byteField=42, shortField= -30000, intField=4000000)
+        s2, offset = TestStruct.unpack(s.pack())
 
         self.assert_(s2.intField == s.intField)
         self.assert_(s2.byteField == s.byteField)
@@ -86,10 +83,10 @@ class NumericFieldTest(unittest.TestCase):
     def testOffset(self):
         class TestStruct(CStruct):
             f1 = IntField(0, offset=0)
-            f2 = IntField(1, offset=4)           
+            f2 = IntField(1, offset=4)
 
         # some random data
-        data = raw('').join([ raw(chr(x)) for x in range(64) ])
+        data = b''.join([chr(x) for x in range(64) ])
         data = data[:16] + self.idata + data[20:]
 
         v, offset = TestStruct.unpack(data, 16)
@@ -97,7 +94,7 @@ class NumericFieldTest(unittest.TestCase):
 
     def testOmmitUnpack(self):
         class TestStruct(CStruct):
-            f1 = UIntField(0, prefix__ommit=raw('\x00'))
+            f1 = UIntField(0, prefix__ommit=b'\x00')
             f2 = UIntField(1)
             f3 = IntField(2)
 
@@ -110,19 +107,19 @@ class NumericFieldTest(unittest.TestCase):
 
     def testOmmitPack(self):
         class TestStruct(CStruct):
-            f1 = UIntField(0, prefix__ommit=raw('\x00') )
+            f1 = UIntField(0, prefix__ommit=b'\x00')
             f2 = UIntField(1)
             f3 = IntField(2)
 
         s = TestStruct(f1=None, f2=2, f3=3)
         self.assertEqual(s.f2, 2)
         self.assertEqual(s.f3, 3)
-        self.assertEqual( s.pack(), raw('\x02\x00\x00\x00\x03\x00\x00\x00'))
+        self.assertEqual(s.pack(), b'\x02\x00\x00\x00\x03\x00\x00\x00')
 
     def testOmmitPackWithOffset(self):
         class TestStruct(CStruct):
             offset_field = UIntField(0)
-            not_important = IntField(1, prefix__ommit=raw('\x02'))
+            not_important = IntField(1, prefix__ommit=b'\x02')
             data = IntField(2, offset='offset_field')
 
         # s = TestStruct(data=0xcafe)
@@ -132,7 +129,7 @@ class NumericFieldTest(unittest.TestCase):
         s = TestStruct(not_important=None, data=0xcafe)
         s.pack()
         self.assertEqual(s.offset_field, 4)
-        
+
 
 
     def testBoundViolation(self):
@@ -146,26 +143,19 @@ class NumericFieldTest(unittest.TestCase):
             f = UIntField(2)
 
         try:
-             A(b=5442)
-             self.fail("Illegal values accepted for byte field.")
+            A(b=5442)
+            self.fail("Illegal values accepted for byte field.")
         except:
             return
 
         try:
-             B(f=5645442)
-             self.fail("Illegal values accepted for short field.")
+            B(f=5645442)
+            self.fail("Illegal values accepted for short field.")
         except:
             return
 
         try:
-             C(f=-1)
-             self.fail("Illegal values accepted for unsigned integer.")
+            C(f= -1)
+            self.fail("Illegal values accepted for unsigned integer.")
         except:
             return
-
-
-if __name__ == '__main__':
-    import lqsoft.cstruct.test.test_numeric
-    
-    suite = unittest.TestLoader().loadTestsFromName('NumericFieldTest.testOmmitPackWithOffset', lqsoft.cstruct.test.test_numeric)
-    unittest.TextTestRunner(verbosity=2).run(suite)

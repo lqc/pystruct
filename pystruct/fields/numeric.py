@@ -1,22 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-
-__author__ = "Łukasz Rekucki"
-__date__ = "$2009-07-19 07:46:52$"
-
+from __future__ import unicode_literals
 import numbers
 
-from pystruct.common import *
+from pystruct.common import CField
 import pystruct.constraints as const
 
 class NumericField(CField):
 
     KEYWORDS = dict(CField.KEYWORDS,
-        ctype = lambda ctype_value: const.NumericBounds(ctype=ctype_value) )
-    
+        ctype=lambda ctype_value: const.NumericBounds(ctype=ctype_value))
+
     def __init__(self, idx, default=0, **kwargs):
         CField.__init__(self, idx, default, **kwargs)
-        self.add_constraint( const.ValueTypeConstraint(numbers.Real) )
+        self.add_constraint(const.ValueTypeConstraint(numbers.Real))
         self.__ctype = kwargs.get('ctype', 'int')
 
     FMT_STRING = {
@@ -34,7 +31,7 @@ class NumericField(CField):
     def _retrieve_value(self, opts):
          (v, offset) = CField._retrieve_value(self, opts)
          return (v[0], offset)
-    
+
 # some usefull shorthands
 class IntField(NumericField):
     def __init__(self, idx, default=0, **kwargs):

@@ -1,0 +1,9 @@
+*.pyc
+
+.coverage
+.project
+.pydevproject
+.settings/**
+*.egg
+htmlcov/**
+build/**

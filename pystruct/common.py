@@ -1,12 +1,9 @@
 # -*- coding: utf-8
 
-__author__="lreqc"
-__date__ ="$2009-07-19 07:48:34$"
-
+from __future__ import unicode_literals
 import pystruct.constraints as const
 import struct
 
-from lq_utils import raw
 
 class ICField(object):
     def add_constraint(self, constr):
@@ -33,21 +30,17 @@ class CField(ICField):
         'offset': const.OffsetConstraint,
         'prefix': const.PrefixConstraint,
     }
-    
+
     def __init__(self, idx, default=None, **kwargs):
         self.idx = idx
         self.default = default
-        self.constraints = []        
+        self.constraints = []
         self.ommit = []
 
-        for (key,value) in kwargs.items():
-            #if key == 'nullable':
-            #    continue
-                
+        for (key, value) in kwargs.items():
             if key.endswith('__ommit'):
                 key = key[:-7]
                 self.ommit.append(key)
-
             constr = self.KEYWORDS[key](value)
             constr.keyword = key
             self.add_constraint(constr)
@@ -86,21 +79,21 @@ class CField(ICField):
 
         for c in reversed(self.constraints):
             c.before_pack(opts)
+        format = self._format_string(opts)
+        return struct.calcsize(str(format))
 
-        return struct.calcsize(self._format_string(opts))
-        
     def pack(self, obj, offset, **opts):
         """Pack the field into a byte array"""
         value = getattr(obj, self.name)
-        
+
         if (value == None) and self.nullable:
-            return raw('') # field is ommited
+            return b'' # field is ommited
 
         opts.update({'field': self, 'obj': obj, 'value': value, 'offset': offset})
         for c in reversed(self.constraints):
             c.pack(opts)
 
-        return struct.pack( self._format_string(opts), value)
+        return struct.pack(self._format_string(opts), value)
 
     def unpack(self, obj, data, pos):
         """Unpack the given byte buffer into this field, starting at pos"""
@@ -110,7 +103,7 @@ class CField(ICField):
         #  * any other stuff the user wants to check
         opts = {'obj': obj, 'data': data, 'offset': pos}
         self._before_unpack(opts)
-        
+
         if not opts.get('__ommit', False):
             return self._retrieve_value(opts)
         else:
@@ -136,12 +129,12 @@ class CField(ICField):
             return None
 
         # the new value is not yet set on the object
-        opts = {'field': self, 'obj': obj, 'value': new_value}      
-  
+        opts = {'field': self, 'obj': obj, 'value': new_value}
+
         # trigger constraints
         for constr in self.constraints:
             constr.on_value_set(opts)
-            
+
         return opts['value']
 
     def __str__(self):
@@ -161,19 +154,19 @@ class StructMetaclass2(type):
                 field_value.name = field_name
                 fields.append(field_value)
                 #internal_dict[field_name] = field_value
-                ndict[field_name] = property( \
+                ndict[field_name] = property(\
                     StructMetaclass2.getter_for(field_value), \
-                    StructMetaclass2.setter_for(field_value) )
+                    StructMetaclass2.setter_for(field_value))
             else:
                 ndict[field_name] = field_value
 
-        klass = type.__new__(cls, name, bases, ndict)
+        klass = type.__new__(cls, str(name), bases, ndict)
 
         #old_dict = getattr(klass, '_internal', {})
         #internal_dict.update(old_dict)
         #setattr(klass, '_internal', internal_dict)
 
-        fields.sort(key= lambda item: item.idx)
+        fields.sort(key=lambda item: item.idx)
 
         order = getattr(klass, '_field_order', [])
         order = order + fields
@@ -199,18 +192,18 @@ CStructBase = StructMetaclass2('CStructBase', (object,), {})
 
 class CStruct(CStructBase):
     def __init__(self, **kwargs):
-        for field in self._field_order:            
-            setattr(self, field.name, kwargs.get(field.name,field.default))
+        for field in self._field_order:
+            setattr(self, field.name, kwargs.get(field.name, field.default))
 
-    def _before_pack(self, offset=0):        
+    def _before_pack(self, offset=0):
         for field in self._field_order:
             offset += field.before_pack(self, offset)
         return offset
 
     def _pack(self, off=0):
-        s = raw()
+        s = b''
         for field in self._field_order:
-            data = field.pack(self, off)            
+            data = field.pack(self, off)
             off += len(data)
             s += data
         return s
@@ -224,7 +217,7 @@ class CStruct(CStructBase):
         # print("Unpacking class %s: offset=%d, total_buf=%d" % (cls.__name__, offset, len(data)))
         dict = {}
         dp = ItemWrapper(dict)
-        
+
         for field in cls._field_order:
             # print( "Unpacking field @%d: %s" % (offset, field.name))
             value, next_offset = field.unpack(dp, data, offset)
@@ -235,14 +228,14 @@ class CStruct(CStructBase):
         instance = cls(**dict)
         # print("Unpacked: " + str(instance))
         return instance, offset
-    
+
     def __field_value(self, field, default=None):
         return field.get_value(self, getattr(self, '_' + field.name, default))
 
     def __str__(self):
         buf = "CStruct("
-        buf += ','.join( "%s = %r" % (field.name, self.__field_value(field)) \
-            for field in self._field_order )
+        buf += ','.join("%s = %r" % (field.name, self.__field_value(field)) \
+            for field in self._field_order)
         buf += ")"
         return buf
 
@@ -253,7 +246,7 @@ class ItemWrapper(object):
 
     def __init__(self, obj):
         self._object = obj
-        
+
     def __getattribute__(self, name):
         # play nice with names startign with '_'
         if name.startswith('_'):
@@ -271,7 +264,7 @@ class ItemWrapper(object):
 
         self._object[name] = self._set_action(self, name, value)
 
-    def __getitem__(self, name):        
+    def __getitem__(self, name):
         return self._get_action(self, name, self._object[name])
 
     def __setitem__(self, name, value):
@@ -285,7 +278,7 @@ class ItemWrapper(object):
 
     def _get_action(self, me, name, value):
         return value
-        
+
     def __str__(self):
         return str(self._object)
 
@@ -300,14 +293,14 @@ class ListItemWrapper(ItemWrapper):
             return self._get_action(self, name, self._object[key])
         except ValueError:
             return ItemWrapper.__getattribute__(self, name)
-    
+
     def __setattr__(self, name, value):
         try:
             key = int(name)
             self._object[key] = self._set_action(self, name, value)
         except ValueError:
-            return ItemWrapper.__setattr__(self, name, value)    
-        
+            return ItemWrapper.__setattr__(self, name, value)
+
 class UnpackException(Exception):
     def __init__(self, msg, constraint):
         Exception.__init__(self, msg)
