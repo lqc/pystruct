@@ -108,13 +108,12 @@ class ValueTypeConstraint(Constraint):
 
     def on_value_set(self, opts):
         if not isinstance(opts['value'], self._klass):
-            raise ValueError("Field {0} accepts only instances of {1} as value.".format(
-                        opts['field'].name, self._klass.__name__))
+            raise ValueError("{value!r} is not a valid value for field {field.name}.".format(**opts))
 
 
 class NumericBounds(Constraint):
     BOUND_FOR_CTYPE = {
-        'int': (-(2 ** 31) + 1 , 2 ** 31),
+        'int': (-(2 ** 31) + 1, 2 ** 31),
         'uint': (0, 2 ** 32 - 1),
         'short': (-(2 ** 15) + 1, 2 ** 15),
         'ushort': (0, 2 ** 16 - 1),
@@ -165,7 +164,7 @@ class LengthConstraint(Constraint):
         if isinstance(self.__length, basestring):
             return setattr(opts['obj'], self.__length, L)
         if self.__length < 0:
-            return # do nothing
+            return  # do nothing
 
         if L > self.__length:
             raise ValueError("Field %s has limited length of %d." % (opts['field'].name, self.__length))

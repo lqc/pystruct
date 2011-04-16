@@ -4,9 +4,11 @@ from pystruct.fields.base import CField
 from pystruct.constraints import LengthConstraint, ValueTypeConstraint
 from pystruct.utils import ListItemWrapper
 
+
 def array_padder(opts):
     pad = opts['padding']
     opts['value']._extend(None for _ in range(0, pad))
+
 
 class ArrayField(CField):
     KEYWORDS = dict(CField.KEYWORDS,
@@ -22,7 +24,7 @@ class ArrayField(CField):
         value = getattr(obj, self.name)
 
         if (value == None) and self.nullable:
-            return 0 # field is ommit
+            return 0
 
         opts.update({'field': self, 'obj': obj, 'value': value})
         for c in reversed(self.constraints):
@@ -43,14 +45,13 @@ class ArrayField(CField):
         value = getattr(obj, self.name)
 
         if (value == None) and self.nullable:
-            return '' # field is ommit
+            return ''
 
         opts.update({'field': self, 'obj': obj, 'value': value})
         for c in reversed(self.constraints):
             c.pack(opts)
 
-        # all constraints to this field applied      
-
+        # all constraints to this field applied
         buffer = bytes()
         off = offset
         for i in range(0, opts['length']):
@@ -60,7 +61,6 @@ class ArrayField(CField):
             off += len(data)
             buffer += data
         return buffer
-
 
     # unpacking
     def _retrieve_value(self, opts):
@@ -112,7 +112,7 @@ class StructField(CField):
     def before_pack(self, obj, offset, **opts):
         value = getattr(obj, self.name)
         if (value == None) and self.nullable:
-            return 0 # field is ommited
+            return 0
 
         opts.update({'field': self, 'obj': obj, 'value': value, 'offset': offset})
         for c in reversed(self.constraints):
@@ -123,7 +123,7 @@ class StructField(CField):
     def pack(self, obj, offset, **opts):
         value = getattr(obj, self.name)
         if (value == None) and self.nullable:
-            return '' # field is ommited
+            return ''
 
         opts.update({'field': self, 'obj': obj, 'value': value, 'offset': offset})
         for c in reversed(self.constraints):

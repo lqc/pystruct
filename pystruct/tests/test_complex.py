@@ -9,6 +9,7 @@ from pystruct.fields.complex import ArrayField, StructField
 from pystruct.fields.numeric import IntField, UIntField
 from pystruct.fields.text import NullStringField
 
+
 class ArrayFieldTest(unittest.TestCase):
 
     def setUp(self):
@@ -22,24 +23,19 @@ class ArrayFieldTest(unittest.TestCase):
             array = ArrayField(0, length=self.slen, subfield=IntField(0))
 
         s = TestStruct(array=self.svalue)
-        try:
-            s.array[1] = 'ala ma kota' # this should fail
-            self.fail('Integer array accepted a string')
-        except ValueError:
-            pass
-
-        self.assertEqual(s.array , self.svalue)
+        with self.assertRaisesRegexp(ValueError, "'ala ma kota' is not a valid value"):
+            s.array[1] = 'ala ma kota'
+        self.assertEqual(s.array, self.svalue)
         self.assertEqual(s.pack(), self.sdata)
 
     def testArrayUnpack(self):
         class TestStruct(CStruct):
             array = ArrayField(0, length=self.slen, subfield=IntField(0))
-
         s, offset = TestStruct.unpack(self.sdata)
-
         self.assertEqual(s.array, self.svalue)
         for i in range(0, self.slen):
             self.assertEqual(s.array[i], self.svalue[i])
+
 
 class StructFieldTest(unittest.TestCase):
 

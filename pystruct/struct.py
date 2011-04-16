@@ -2,6 +2,7 @@
 from pystruct.fields.base import CField
 from pystruct.utils import ItemWrapper
 
+
 class StructMetaclass(type):
 
     def __new__(cls, name, bases, cdict):

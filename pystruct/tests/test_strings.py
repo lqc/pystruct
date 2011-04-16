@@ -9,6 +9,7 @@ from pystruct import CStruct
 from pystruct.fields.text import StringField, NullStringField
 from pystruct.fields.numeric import IntField
 
+
 class StringFieldTest(unittest.TestCase):
 
     def setUp(self):
@@ -19,7 +20,7 @@ class StringFieldTest(unittest.TestCase):
 
     def testNegativeLength(self):
         class TestStruct(CStruct):
-            text = StringField(0, length= -1)
+            text = StringField(0, length=(-1))
 
         s, offset = TestStruct.unpack(self.sdata)
         self.assertEqual(s.text, self.svalue)

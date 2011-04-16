@@ -64,7 +64,7 @@ class NumericFieldTest(unittest.TestCase):
             shortField = ShortField(1)
             intField = IntField(2)
 
-        s = TestStruct(byteField=42, shortField= -30000, intField=4000000)
+        s = TestStruct(byteField=42, shortField=(-30000), intField=4000000)
         s2, offset = TestStruct.unpack(s.pack())
         self.assertEqual(s2.intField, s.intField)
         self.assertEqual(s2.byteField, s.byteField)
@@ -76,7 +76,7 @@ class NumericFieldTest(unittest.TestCase):
             f2 = IntField(1, offset=4)
 
         # some random data
-        data = b''.join([chr(x) for x in range(64) ])
+        data = b''.join([chr(x) for x in range(64)])
         data = data[:16] + self.idata + data[20:]
 
         v, offset = TestStruct.unpack(data, 16)
@@ -119,8 +119,10 @@ class NumericFieldTest(unittest.TestCase):
     def testBoundViolation(self):
         class A(CStruct):
             f = ByteField(0)
+
         class B(CStruct):
             f = ShortField(1)
+
         class C(CStruct):
             f = UIntField(2)
 
@@ -129,4 +131,4 @@ class NumericFieldTest(unittest.TestCase):
         with self.assertRaisesRegexp(ValueError, "out of bounds"):
             B(f=5645442)
         with self.assertRaisesRegexp(ValueError, "out of bounds"):
-            C(f= -1)
+            C(f=(-1))

@@ -12,9 +12,11 @@ from pystruct.constraints import LengthConstraint, MaxLengthConstraint
 
 from functools import partial
 
+
 def string_padder(opts):
     pad = opts['padding']
     opts['value'] += pad * b'\x00'
+
 
 class StringField(CField):
     KEYWORDS = dict(CField.KEYWORDS,
@@ -44,7 +46,7 @@ class NullStringField(CField):
         CField._before_unpack(self, opts)
         try:
             opts['length'] = opts['data'].index('\0', opts['offset']) - opts['offset'] + 1
-            if opts.has_key('max_length'):
+            if "max_length" in opts:
                 opts['length'] = min(opts['max_length'], opts['length'])
         except ValueError:
             raise UnpackException("Unterminated null string occured.")
@@ -67,9 +69,11 @@ class NullStringField(CField):
 
         return CField.set_value(self, obj, value)
 
+
 class CStructVarString(CStruct):
     length = UIntField(0)
     text = StringField(1, length='length')
+
 
 class VarcharField(StructField):
     def __init__(self, idx, default='', **opts):
