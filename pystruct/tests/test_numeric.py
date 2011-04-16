@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import unittest
 import struct
+from pystruct.utils import unittest
 
-from pystruct.common import CStruct, UnpackException
-from pystruct.fields.numeric import *
+from pystruct import CStruct, UnpackException
 from pystruct.constraints import PrefixConstraint
+from pystruct.fields.numeric import (NumericField,
+                    ByteField, UByteField,
+                    ShortField, UShortField,
+                    IntField, UIntField)
+from pystruct.common import PackException
+
 
 class NumericFieldTest(unittest.TestCase):
 
@@ -17,55 +22,41 @@ class NumericFieldTest(unittest.TestCase):
     def test0Pack(self):
         class TestStruct(CStruct):
             intField = NumericField(0, ctype='int')
-
         s = TestStruct(intField=self.ivalue)
-        self.assert_(s.intField == self.ivalue)
-        self.assert_(s.pack() == self.idata)
+        self.assertEqual(s.intField, self.ivalue)
+        self.assertEqual(s.pack(), self.idata)
 
     def test0Unpack(self):
         class TestStruct(CStruct):
             intField = NumericField(0, ctype='int')
-
         s, offset = TestStruct.unpack(self.idata)
-        self.assert_(s.intField == self.ivalue)
+        self.assertEqual(s.intField, self.ivalue)
 
     def testPrefixMatch(self):
         class TestStruct(CStruct):
             intField = NumericField(0, ctype='int', prefix=self.idata[0:2])
-
         v, offset = TestStruct.unpack(self.idata)
-        self.assert_(v.intField == self.ivalue)
+        self.assertEqual(v.intField, self.ivalue)
 
     def testPrefixMismatch(self):
         class TestStruct(CStruct):
             intField = NumericField(0, ctype='int', prefix=b'abc')
-
-        try:
-            v, offset = TestStruct.unpack(self.idata)
-            self.fail('Invalid prefix accepted by field during unpack.')
-        except UnpackException as e:
-            if not isinstance(e.constraint, PrefixConstraint):
-                self.fail(e.getMessage())
-            # otherwise we succeded
+        with self.assertRaises(UnpackException) as cm:
+            TestStruct.unpack(self.idata)
+        self.assertIsInstance(cm.exception.args[1], PrefixConstraint)
 
     def testPrefixTooLong(self):
         class TestStruct(CStruct):
             intField = NumericField(0, ctype='int', prefix=(self.idata + b'\x00'))
-
-        try:
-            v, offset = TestStruct.unpack(self.idata)
-            self.fail('Too long prefix accepted by field during unpack.')
-        except UnpackException as e:
-            if not isinstance(e.constraint, PrefixConstraint):
-                self.fail(e.getMessage())
-            # otherwise we succeded
+        with self.assertRaises(UnpackException) as cm:
+            TestStruct.unpack(self.idata)
+        self.assertIsInstance(cm.exception.args[1], PrefixConstraint)
 
     def testPrefixEmpty(self):
         class TestStruct(CStruct):
             intField = NumericField(0, ctype='int', prefix=b'')
-
         v, offset = TestStruct.unpack(self.idata)
-        self.assert_(v.intField == self.ivalue)
+        self.assertEqual(v.intField, self.ivalue)
 
     def testByteAndShort(self):
         class TestStruct(CStruct):
@@ -75,10 +66,9 @@ class NumericFieldTest(unittest.TestCase):
 
         s = TestStruct(byteField=42, shortField= -30000, intField=4000000)
         s2, offset = TestStruct.unpack(s.pack())
-
-        self.assert_(s2.intField == s.intField)
-        self.assert_(s2.byteField == s.byteField)
-        self.assert_(s2.shortField == s.shortField)
+        self.assertEqual(s2.intField, s.intField)
+        self.assertEqual(s2.byteField, s.byteField)
+        self.assertEqual(s2.shortField, s.shortField)
 
     def testOffset(self):
         class TestStruct(CStruct):
@@ -122,40 +112,21 @@ class NumericFieldTest(unittest.TestCase):
             not_important = IntField(1, prefix__ommit=b'\x02')
             data = IntField(2, offset='offset_field')
 
-        # s = TestStruct(data=0xcafe)
-        # s.pack()
-        # self.assertEqual(s.offset_field, 8)
-
         s = TestStruct(not_important=None, data=0xcafe)
         s.pack()
         self.assertEqual(s.offset_field, 4)
 
-
-
     def testBoundViolation(self):
         class A(CStruct):
             f = ByteField(0)
-
         class B(CStruct):
             f = ShortField(1)
-
         class C(CStruct):
             f = UIntField(2)
 
-        try:
-            A(b=5442)
-            self.fail("Illegal values accepted for byte field.")
-        except:
-            return
-
-        try:
+        with self.assertRaisesRegexp(ValueError, "out of bounds"):
+            A(f=5442)
+        with self.assertRaisesRegexp(ValueError, "out of bounds"):
             B(f=5645442)
-            self.fail("Illegal values accepted for short field.")
-        except:
-            return
-
-        try:
+        with self.assertRaisesRegexp(ValueError, "out of bounds"):
             C(f= -1)
-            self.fail("Illegal values accepted for unsigned integer.")
-        except:
-            return

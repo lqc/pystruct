@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 import numbers
 
-from pystruct.common import CField
+from pystruct.fields.base import CField
 import pystruct.constraints as const
 
 class NumericField(CField):

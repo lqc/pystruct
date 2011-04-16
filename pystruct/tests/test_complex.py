@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import unittest
+from pystruct.utils import unittest
 import struct
 
-from pystruct.common import CStruct
+from pystruct import CStruct
 from pystruct.fields.complex import ArrayField, StructField
 from pystruct.fields.numeric import IntField, UIntField
 from pystruct.fields.text import NullStringField

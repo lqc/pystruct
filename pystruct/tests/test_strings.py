@@ -2,10 +2,10 @@
 # -*- coding: utf-8
 from __future__ import unicode_literals
 
-import unittest
+from pystruct.utils import unittest
 import struct
 
-from pystruct.common import CStruct
+from pystruct import CStruct
 from pystruct.fields.text import StringField, NullStringField
 from pystruct.fields.numeric import IntField
 

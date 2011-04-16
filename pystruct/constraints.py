@@ -1,8 +1,7 @@
 # -*- coding: utf-8
 
-import types
+import abc
 
-# default priorities
 PRIO_OFFSET = 100
 PRIO_PREFIX = 500
 PRIO_TYPE = 600
@@ -10,12 +9,17 @@ PRIO_LENGTH = 700
 PRIO_MAXLENGTH = 750
 PRIO_NBOUNDS = 800
 
-class IConstraint(object):
+from pystruct.common import PackException
+
+
+class Constraint(object):
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, priority):
         self.priority = priority
 
-    def __str__(self):
-        return self.__class__.__name__
+    def __unicode__(self):
+        return "<{0}: priority={1}>".format(type(self).__name__, self.priority)
 
     def before_unpack(self, opts):
         return True
@@ -29,9 +33,11 @@ class IConstraint(object):
     def on_value_set(self, opts):
         pass
 
-class PrefixConstraint(IConstraint):
+
+class PrefixConstraint(Constraint):
+
     def __init__(self, param, priority=PRIO_PREFIX):
-        IConstraint.__init__(self, priority)
+        super(PrefixConstraint, self).__init__(priority)
 
         if not isinstance(param, bytes):
             raise ValueError("Prefix constraints takes a byte array as an argument")
@@ -40,10 +46,10 @@ class PrefixConstraint(IConstraint):
     def match(self, data, pos):
         l = len(data)
         for char in self.prefix:
-            if pos >= l: # prefix exceeds the data
+            if pos >= l:  # prefix exceeds the data
                 return False
 
-            if data[pos] != char: # characters don't match
+            if data[pos] != char:  # characters don't match
                 return False
             pos += 1
         return True
@@ -51,10 +57,11 @@ class PrefixConstraint(IConstraint):
     def before_unpack(self, opts):
         return self.match(opts['data'], opts['offset'])
 
-class OffsetConstraint(IConstraint):
+
+class OffsetConstraint(Constraint):
 
     def __init__(self, param, priority=PRIO_OFFSET):
-        IConstraint.__init__(self, priority)
+        super(OffsetConstraint, self).__init__(priority)
 
         if isinstance(param, str):
             self.before_upack = self.before_upack_field
@@ -72,9 +79,10 @@ class OffsetConstraint(IConstraint):
 
     def before_upack_field(self, options):
         off_field = getattr(options['obj'], self.__offset)
-        if not isinstance(off_field, NumericField):
-            raise ValueError("Field offset can only be attached \
-                    to a numeric field.")
+        # TODO: this is a cyclic dependency... not good
+        # if not isinstance(off_field, NumericField):
+        #    raise ValueError("Field offset can only be attached \
+        #            to a numeric field.")
         if getattr(options['obj'], self.__offset) != options['offset']:
             return False
         return True
@@ -85,13 +93,14 @@ class OffsetConstraint(IConstraint):
 
     def pack(self, options):
         if isinstance(self.__offset, int) and (options['offset'] != self.__offset):
-            raise PackingException("Explicit offset of field %s was set, but position doesn't match" % \
+            raise PackException("Explicit offset of field %s was set, but position doesn't match" % \
                 options['field'].name)
 
-class ValueTypeConstraint(IConstraint):
+
+class ValueTypeConstraint(Constraint):
 
     def __init__(self, typeklass, priority=PRIO_TYPE):
-        IConstraint.__init__(self, priority)
+        super(ValueTypeConstraint, self).__init__(priority)
 
         if not isinstance(typeklass, type):
             raise ValueError("This constraint must contain a type class.")
@@ -99,22 +108,23 @@ class ValueTypeConstraint(IConstraint):
 
     def on_value_set(self, opts):
         if not isinstance(opts['value'], self._klass):
-            raise ValueError("Field %s accepts only instances of %s as value."\
-                % (opts['field'].name, self._klass.__name__))
+            raise ValueError("Field {0} accepts only instances of {1} as value.".format(
+                        opts['field'].name, self._klass.__name__))
 
-class NumericBounds(IConstraint):
+
+class NumericBounds(Constraint):
     BOUND_FOR_CTYPE = {
-        'int':      (-(2 ** 31) + 1 , 2 ** 31),
-        'uint':     (0          , 2 ** 32 - 1),
-        'short':    (-(2 ** 15) + 1 , 2 ** 15),
-        'ushort':   (0          , 2 ** 16 - 1),
-        'byte':     (-127, 128),
-        'ubyte':    (0, 255),
+        'int': (-(2 ** 31) + 1 , 2 ** 31),
+        'uint': (0, 2 ** 32 - 1),
+        'short': (-(2 ** 15) + 1, 2 ** 15),
+        'ushort': (0, 2 ** 16 - 1),
+        'byte': (-127, 128),
+        'ubyte': (0, 255),
     }
 
-    def __init__(self, lower_bound=None, upper_bound=None, ctype=None, \
-      priority=PRIO_NBOUNDS):
-        IConstraint.__init__(self, priority)
+    def __init__(self, lower_bound=None, upper_bound=None,
+                        ctype=None, priority=PRIO_NBOUNDS):
+        super(NumericBounds, self).__init__(priority)
 
         if ctype != None:
             self._lbound, self._ubound = self.BOUND_FOR_CTYPE[ctype]
@@ -129,9 +139,11 @@ class NumericBounds(IConstraint):
             raise ValueError("Field %s - value %s out of bounds."\
                 % (opts['field'].name, opts['value']))
 
-class LengthConstraint(IConstraint):
-    def __init__(self, length, padding_func, priority=PRIO_LENGTH, opt_name='length'):
-        IConstraint.__init__(self, priority)
+
+class LengthConstraint(Constraint):
+    def __init__(self, length, padding_func,
+                 priority=PRIO_LENGTH, opt_name='length'):
+        super(LengthConstraint, self).__init__(priority)
 
         if isinstance(length, property):
             self.before_unpack = self.before_unpack_prop
@@ -182,6 +194,7 @@ class LengthConstraint(IConstraint):
     def before_unpack_field(self, opts):
         opts[self._opt_name] = getattr(opts['obj'], self.__length)
         return True
+
 
 class MaxLengthConstraint(LengthConstraint):
     def __init__(self, length, priority=PRIO_MAXLENGTH):

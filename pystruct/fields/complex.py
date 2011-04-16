@@ -1,8 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8
 
-from pystruct.common import ListItemWrapper, CField
-from pystruct.constraints import *
+from pystruct.fields.base import CField
+from pystruct.constraints import LengthConstraint, ValueTypeConstraint
+from pystruct.utils import ListItemWrapper
 
 def array_padder(opts):
     pad = opts['padding']
@@ -103,7 +103,7 @@ class StructField(CField):
     """Field containing a sub-structure - useful for defining common field groups."""
 
     KEYWORDS = dict(CField.KEYWORDS,
-        inner=lambda cvalue: const.ValueTypeConstraint(cvalue))
+        inner=lambda cvalue: ValueTypeConstraint(cvalue))
 
     def __init__(self, idx, struct, default=None, **kwargs):
         CField.__init__(self, idx, default, **kwargs)

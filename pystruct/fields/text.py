@@ -2,9 +2,12 @@
 # -*- coding: utf-8
 
 from __future__ import unicode_literals
-from pystruct.common import CField, CStruct, UnpackException
+
+from pystruct.fields.base import CField
 from pystruct.fields.numeric import UIntField
 from pystruct.fields.complex import StructField
+from pystruct.struct import CStruct
+from pystruct.common import UnpackException
 from pystruct.constraints import LengthConstraint, MaxLengthConstraint
 
 from functools import partial
@@ -70,6 +73,6 @@ class CStructVarString(CStruct):
 
 class VarcharField(StructField):
     def __init__(self, idx, default='', **opts):
-        if isinstance(default, str):
+        if isinstance(default, bytes):
             default = CStructVarString(text=default)
         StructField.__init__(self, idx, CStructVarString, default, **opts)

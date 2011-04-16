@@ -5,15 +5,19 @@ else:
     import unittest
 import coverage
 
+
 _cov = coverage.coverage(config_file='coverage.cfg')
+
 
 class CoverageResult(unittest._TextTestResult):
 
     def stopTestRun(self):
         _cov.stop()
-        print "Coverage report:"
-        _cov.report()
-        _cov.html_report()
+        super(CoverageResult, self).stopTestRun()
+        if self.wasSuccessful():
+            print "\nCoverage report:"
+            _cov.report()
+            _cov.html_report()
 
 
 class CoverageRunner(unittest.TextTestRunner):
