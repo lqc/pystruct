@@ -6,6 +6,7 @@ class Dummy(CStruct):
 
 class StructTest(unittest.TestCase):
 
+    @unittest.expectedFailure
     def test_missing_argument(self):
         self.assertRaises(ValueError, Dummy)
 
